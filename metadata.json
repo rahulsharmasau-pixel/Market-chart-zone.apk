@@ -1,0 +1,6 @@
+{
+  "name": "Market Chart Zone",
+  "description": "Premium trading signals, market chart analysis, community discussions, and trading calculators.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

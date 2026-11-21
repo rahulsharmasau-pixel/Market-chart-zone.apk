@@ -1,0 +1,11 @@
+{
+  "name": "market-chart-zone-functions",
+  "description": "Server-side FCM push notification triggers for Market Chart Zone",
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.1.0"
+  }
+}

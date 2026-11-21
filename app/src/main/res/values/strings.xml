@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Market Chart Zone</string>
+    <string name="default_notification_channel_id" translatable="false">market_chart_zone_alerts</string>
+    <string name="notification_channel_name">Market Signals &amp; Alerts</string>
+    <string name="notification_channel_description">High-priority alerts for VIP trade signals, market chart analyses, and announcements.</string>
+    <string name="app_version_label">Version 1.0.0</string>
+    <string name="notification_permission_rationale">Enable push notifications to receive instant VIP trade alerts, market analysis updates, and important announcements even when Market Chart Zone is closed.</string>
+    <string name="battery_optimization_rationale">To prevent Android from delaying VIP trade alerts while the app is closed, allow Market Chart Zone to run unrestricted in battery settings.</string>
+</resources>

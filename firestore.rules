@@ -1,0 +1,375 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isCreatorEmail() {
+      return isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        request.auth.token.email == 's21903125@gmail.com';
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        isCreatorEmail() ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isNotSuspended() {
+      return !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.suspended != true;
+    }
+
+    function isValidStringList(listVal, maxLen) {
+      return listVal is list &&
+        listVal.size() <= maxLen &&
+        (listVal.size() == 0 || listVal[0] is string);
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+        data.email is string && data.email.size() <= 160 &&
+        data.joinedGuidelines is bool &&
+        data.suspended is bool &&
+        isValidStringList(data.fcmTokens, 10) &&
+        isValidStringList(data.mutedCategories, 10) &&
+        data.darkMode is bool;
+    }
+
+    function isValidAdminConfig(data) {
+      return data.creatorUid is string && data.creatorUid.size() >= 1 && data.creatorUid.size() <= 128 &&
+        data.adminUserId is string && data.adminUserId.size() >= 3 && data.adminUserId.size() <= 64 &&
+        data.passwordHash is string && data.passwordHash.size() >= 20 && data.passwordHash.size() <= 256 &&
+        data.salt is string && data.salt.size() >= 12 && data.salt.size() <= 128 &&
+        data.failedAttempts is int && data.failedAttempts >= 0 && data.failedAttempts <= 100 &&
+        data.lockedUntilEpochMs is int && data.lockedUntilEpochMs >= 0;
+    }
+
+    function isValidVipTrade(data) {
+      return data.title is string && data.title.size() >= 1 && data.title.size() <= 140 &&
+        data.body is string && data.body.size() >= 1 && data.body.size() <= 4000 &&
+        data.pair is string && data.pair.size() <= 24 &&
+        data.direction in ['LONG', 'SHORT', 'NEUTRAL'] &&
+        data.entryPrice is string && data.entryPrice.size() <= 32 &&
+        data.stopLoss is string && data.stopLoss.size() <= 32 &&
+        data.takeProfit is string && data.takeProfit.size() <= 32 &&
+        data.authorId is string && data.authorId.size() >= 1 && data.authorId.size() <= 128 &&
+        (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1000)) &&
+        data.reactionFire is int && data.reactionFire >= 0 &&
+        data.reactionRocket is int && data.reactionRocket >= 0 &&
+        data.reactionHundred is int && data.reactionHundred >= 0 &&
+        data.reactionBull is int && data.reactionBull >= 0;
+    }
+
+    function isValidMarketAnalysis(data) {
+      return data.title is string && data.title.size() >= 1 && data.title.size() <= 160 &&
+        data.pair is string && data.pair.size() >= 1 && data.pair.size() <= 24 &&
+        data.timeframe is string && data.timeframe.size() >= 1 && data.timeframe.size() <= 16 &&
+        data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 4000 &&
+        isValidStringList(data.supportLevels, 10) &&
+        isValidStringList(data.resistanceLevels, 10) &&
+        data.authorId is string && data.authorId.size() >= 1 && data.authorId.size() <= 128 &&
+        (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1000)) &&
+        data.reactionFire is int && data.reactionFire >= 0 &&
+        data.reactionRocket is int && data.reactionRocket >= 0 &&
+        data.reactionHundred is int && data.reactionHundred >= 0 &&
+        data.reactionBull is int && data.reactionBull >= 0;
+    }
+
+    function isValidReactionDelta(ex, inc) {
+      return inc.reactionFire >= ex.reactionFire - 1 && inc.reactionFire <= ex.reactionFire + 1 &&
+        inc.reactionRocket >= ex.reactionRocket - 1 && inc.reactionRocket <= ex.reactionRocket + 1 &&
+        inc.reactionHundred >= ex.reactionHundred - 1 && inc.reactionHundred <= ex.reactionHundred + 1 &&
+        inc.reactionBull >= ex.reactionBull - 1 && inc.reactionBull <= ex.reactionBull + 1;
+    }
+
+    function isValidCommunityMessage(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80 &&
+        data.authorInitials is string && data.authorInitials.size() >= 1 && data.authorInitials.size() <= 4 &&
+        data.body is string && data.body.size() >= 1 && data.body.size() <= 1000 &&
+        data.tickerTag is string && data.tickerTag.size() <= 24;
+    }
+
+    function isValidAnnouncement(data) {
+      return data.title is string && data.title.size() >= 1 && data.title.size() <= 140 &&
+        data.message is string && data.message.size() >= 1 && data.message.size() <= 1000 &&
+        data.category in ['vip_trades', 'market_analysis', 'announcements'] &&
+        (!('targetId' in data) || (data.targetId is string && data.targetId.size() <= 128)) &&
+        (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1000)) &&
+        data.authorId is string && data.authorId.size() >= 1 && data.authorId.size() <= 128;
+    }
+
+    function isValidIssueReport(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.userEmail is string && data.userEmail.size() <= 160 &&
+        data.userName is string && data.userName.size() >= 1 && data.userName.size() <= 80 &&
+        data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 120 &&
+        data.description is string && data.description.size() >= 1 && data.description.size() <= 2000 &&
+        data.status in ['open', 'resolved'] &&
+        data.adminNote is string && data.adminNote.size() <= 500;
+    }
+
+    function isValidAppContent(data) {
+      return data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+        data.body is string && data.body.size() >= 1 && data.body.size() <= 15000 &&
+        data.updatedBy is string && data.updatedBy.size() >= 1 && data.updatedBy.size() <= 128;
+    }
+
+    function isValidUserReaction(data) {
+      return data.postId is string && data.postId.size() >= 1 && data.postId.size() <= 128 &&
+        isValidStringList(data.emojis, 10);
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isSignedIn() && isAdmin();
+      allow create: if isSignedIn() &&
+        isValidId(userId) &&
+        isOwner(userId) &&
+        incoming().userId == request.auth.uid &&
+        incoming().suspended == false &&
+        incoming().keys().hasAll(['userId', 'displayName', 'email', 'joinedGuidelines', 'suspended', 'fcmTokens', 'mutedCategories', 'darkMode', 'createdAt', 'updatedAt']) &&
+        incoming().keys().hasOnly(['userId', 'displayName', 'email', 'joinedGuidelines', 'suspended', 'fcmTokens', 'mutedCategories', 'darkMode', 'createdAt', 'updatedAt']) &&
+        isValidUserProfile(incoming()) &&
+        incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+        incoming().updatedAt is timestamp && incoming().updatedAt <= request.time;
+      allow update: if isSignedIn() &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt is timestamp && incoming().updatedAt <= request.time && (
+          (isOwner(userId) &&
+            incoming().suspended == existing().suspended &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'joinedGuidelines', 'fcmTokens', 'mutedCategories', 'darkMode', 'updatedAt'])) ||
+          (isAdmin() &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['suspended', 'updatedAt']))
+        );
+      allow delete: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
+
+      match /reactions/{postId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(postId) && isOwner(userId);
+        allow list: if isSignedIn() && isOwner(userId);
+        allow create: if isSignedIn() &&
+          isValidId(userId) && isValidId(postId) &&
+          isOwner(userId) &&
+          incoming().keys().hasAll(['postId', 'emojis', 'updatedAt']) &&
+          incoming().keys().hasOnly(['postId', 'emojis', 'updatedAt']) &&
+          isValidUserReaction(incoming()) &&
+          incoming().updatedAt is timestamp && incoming().updatedAt <= request.time;
+        allow update: if isSignedIn() &&
+          isValidId(userId) && isValidId(postId) &&
+          isOwner(userId) &&
+          isValidUserReaction(incoming()) &&
+          incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['postId', 'emojis', 'updatedAt']);
+        allow delete: if isSignedIn() && isValidId(userId) && isValidId(postId) && isOwner(userId);
+      }
+    }
+
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list: if false;
+      allow create: if isSignedIn() &&
+        isValidId(adminId) &&
+        request.auth.uid == adminId &&
+        isCreatorEmail() &&
+        !exists(/databases/$(database)/documents/admins/$(adminId)) &&
+        incoming().keys().hasAll(['uid', 'createdAt']) &&
+        incoming().keys().hasOnly(['uid', 'createdAt']) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt is timestamp && incoming().createdAt <= request.time;
+      allow update, delete: if false;
+    }
+
+    match /admin_meta/{docId} {
+      allow get: if isSignedIn() && docId == 'config' && (isCreatorEmail() || isAdmin());
+      allow list: if false;
+      allow create: if isSignedIn() &&
+        docId == 'config' &&
+        isCreatorEmail() &&
+        !exists(/databases/$(database)/documents/admin_meta/config) &&
+        incoming().creatorUid == request.auth.uid &&
+        incoming().keys().hasAll(['creatorUid', 'adminUserId', 'passwordHash', 'salt', 'failedAttempts', 'lockedUntilEpochMs', 'createdAt', 'updatedAt']) &&
+        incoming().keys().hasOnly(['creatorUid', 'adminUserId', 'passwordHash', 'salt', 'failedAttempts', 'lockedUntilEpochMs', 'createdAt', 'updatedAt']) &&
+        isValidAdminConfig(incoming()) &&
+        incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+        incoming().updatedAt is timestamp && incoming().updatedAt <= request.time;
+      allow update: if isSignedIn() &&
+        docId == 'config' &&
+        (isCreatorEmail() || isAdmin()) &&
+        isValidAdminConfig(incoming()) &&
+        incoming().creatorUid == existing().creatorUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['adminUserId', 'passwordHash', 'salt', 'failedAttempts', 'lockedUntilEpochMs', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /vip_trades/{tradeId} {
+      allow get: if isSignedIn() && isValidId(tradeId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() &&
+        isValidId(tradeId) &&
+        isAdmin() &&
+        incoming().authorId == request.auth.uid &&
+        incoming().keys().hasAll(['title', 'body', 'pair', 'direction', 'entryPrice', 'stopLoss', 'takeProfit', 'authorId', 'reactionFire', 'reactionRocket', 'reactionHundred', 'reactionBull', 'createdAt', 'updatedAt']) &&
+        incoming().keys().hasOnly(['title', 'body', 'pair', 'direction', 'entryPrice', 'stopLoss', 'takeProfit', 'imageUrl', 'authorId', 'reactionFire', 'reactionRocket', 'reactionHundred', 'reactionBull', 'createdAt', 'updatedAt']) &&
+        isValidVipTrade(incoming()) &&
+        incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+        incoming().updatedAt is timestamp && incoming().updatedAt <= request.time;
+      allow update: if isSignedIn() &&
+        isValidId(tradeId) &&
+        isValidVipTrade(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt && (
+          (isAdmin() &&
+            incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'body', 'pair', 'direction', 'entryPrice', 'stopLoss', 'takeProfit', 'imageUrl', 'updatedAt'])) ||
+          (incoming().diff(existing()).affectedKeys().hasOnly(['reactionFire', 'reactionRocket', 'reactionHundred', 'reactionBull']) &&
+            isValidReactionDelta(existing(), incoming()))
+        );
+      allow delete: if isSignedIn() && isValidId(tradeId) && isAdmin();
+    }
+
+    match /market_analyses/{analysisId} {
+      allow get: if isSignedIn() && isValidId(analysisId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() &&
+        isValidId(analysisId) &&
+        isAdmin() &&
+        incoming().authorId == request.auth.uid &&
+        incoming().keys().hasAll(['title', 'pair', 'timeframe', 'summary', 'supportLevels', 'resistanceLevels', 'authorId', 'reactionFire', 'reactionRocket', 'reactionHundred', 'reactionBull', 'createdAt', 'updatedAt']) &&
+        incoming().keys().hasOnly(['title', 'pair', 'timeframe', 'summary', 'supportLevels', 'resistanceLevels', 'imageUrl', 'authorId', 'reactionFire', 'reactionRocket', 'reactionHundred', 'reactionBull', 'createdAt', 'updatedAt']) &&
+        isValidMarketAnalysis(incoming()) &&
+        incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+        incoming().updatedAt is timestamp && incoming().updatedAt <= request.time;
+      allow update: if isSignedIn() &&
+        isValidId(analysisId) &&
+        isValidMarketAnalysis(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt && (
+          (isAdmin() &&
+            incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'pair', 'timeframe', 'summary', 'supportLevels', 'resistanceLevels', 'imageUrl', 'updatedAt'])) ||
+          (incoming().diff(existing()).affectedKeys().hasOnly(['reactionFire', 'reactionRocket', 'reactionHundred', 'reactionBull']) &&
+            isValidReactionDelta(existing(), incoming()))
+        );
+      allow delete: if isSignedIn() && isValidId(analysisId) && isAdmin();
+    }
+
+    match /community_messages/{messageId} {
+      allow get: if isSignedIn() && isValidId(messageId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() &&
+        isValidId(messageId) &&
+        incoming().userId == request.auth.uid &&
+        isNotSuspended() &&
+        incoming().keys().hasAll(['userId', 'authorName', 'authorInitials', 'body', 'tickerTag', 'createdAt', 'updatedAt']) &&
+        incoming().keys().hasOnly(['userId', 'authorName', 'authorInitials', 'body', 'tickerTag', 'createdAt', 'updatedAt']) &&
+        isValidCommunityMessage(incoming()) &&
+        incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+        incoming().updatedAt is timestamp && incoming().updatedAt <= request.time;
+      allow update: if isSignedIn() &&
+        isValidId(messageId) &&
+        isAdmin() &&
+        isValidCommunityMessage(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['body', 'tickerTag', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(messageId) && (isAdmin() || existing().userId == request.auth.uid);
+    }
+
+    match /announcements/{announcementId} {
+      allow get: if isSignedIn() && isValidId(announcementId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() &&
+        isValidId(announcementId) &&
+        isAdmin() &&
+        incoming().authorId == request.auth.uid &&
+        incoming().keys().hasAll(['title', 'message', 'category', 'authorId', 'createdAt']) &&
+        incoming().keys().hasOnly(['title', 'message', 'category', 'targetId', 'imageUrl', 'authorId', 'createdAt']) &&
+        isValidAnnouncement(incoming()) &&
+        incoming().createdAt is timestamp && incoming().createdAt <= request.time;
+      allow update: if isSignedIn() &&
+        isValidId(announcementId) &&
+        isAdmin() &&
+        isValidAnnouncement(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['title', 'message', 'category', 'targetId', 'imageUrl']);
+      allow delete: if isSignedIn() && isValidId(announcementId) && isAdmin();
+    }
+
+    match /issue_reports/{reportId} {
+      allow get: if isSignedIn() && isValidId(reportId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() &&
+        isValidId(reportId) &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'open' &&
+        incoming().adminNote == '' &&
+        incoming().keys().hasAll(['userId', 'userEmail', 'userName', 'subject', 'description', 'status', 'adminNote', 'createdAt', 'updatedAt']) &&
+        incoming().keys().hasOnly(['userId', 'userEmail', 'userName', 'subject', 'description', 'status', 'adminNote', 'createdAt', 'updatedAt']) &&
+        isValidIssueReport(incoming()) &&
+        incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+        incoming().updatedAt is timestamp && incoming().updatedAt <= request.time;
+      allow update: if isSignedIn() &&
+        isValidId(reportId) &&
+        isAdmin() &&
+        isValidIssueReport(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'adminNote', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(reportId) && isAdmin();
+    }
+
+    match /app_content/{docId} {
+      allow get: if isSignedIn() && docId in ['help_faqs', 'terms', 'privacy'];
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() &&
+        docId in ['help_faqs', 'terms', 'privacy'] &&
+        isAdmin() &&
+        incoming().keys().hasAll(['title', 'body', 'updatedBy', 'updatedAt']) &&
+        incoming().keys().hasOnly(['title', 'body', 'updatedBy', 'updatedAt']) &&
+        isValidAppContent(incoming()) &&
+        incoming().updatedAt is timestamp && incoming().updatedAt <= request.time;
+      allow update: if isSignedIn() &&
+        docId in ['help_faqs', 'terms', 'privacy'] &&
+        isAdmin() &&
+        isValidAppContent(incoming()) &&
+        incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['title', 'body', 'updatedBy', 'updatedAt']);
+      allow delete: if false;
+    }
+  }
+}

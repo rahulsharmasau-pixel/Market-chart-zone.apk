@@ -1,0 +1,195 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered Market Chart Zone member profile, preferences, suspension state, and FCM tokens.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID matching document ID." },
+        "displayName": { "type": "string", "description": "User display name shown in greeting and community." },
+        "email": { "type": "string", "description": "User email address (PII, owner or admin read only)." },
+        "joinedGuidelines": { "type": "boolean", "description": "Whether user accepted the four Community guidelines." },
+        "suspended": { "type": "boolean", "description": "Admin-controlled community suspension flag." },
+        "fcmTokens": { "type": "array", "description": "Active FCM registration tokens for push delivery." },
+        "mutedCategories": { "type": "array", "description": "Muted notification categories (vip_trades, market_analysis, announcements)." },
+        "darkMode": { "type": "boolean", "description": "User theme preference; dark is default." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update." }
+      },
+      "required": ["userId", "displayName", "email", "joinedGuidelines", "suspended", "fcmTokens", "mutedCategories", "darkMode", "createdAt", "updatedAt"]
+    },
+    "AdminCredentialConfig": {
+      "title": "AdminCredentialConfig",
+      "description": "One-time creator admin credentials stored with salted PBKDF2 hash and rate-limiting metadata.",
+      "type": "object",
+      "properties": {
+        "creatorUid": { "type": "string" },
+        "adminUserId": { "type": "string" },
+        "passwordHash": { "type": "string" },
+        "salt": { "type": "string" },
+        "failedAttempts": { "type": "integer" },
+        "lockedUntilEpochMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["creatorUid", "adminUserId", "passwordHash", "salt", "failedAttempts", "lockedUntilEpochMs", "createdAt", "updatedAt"]
+    },
+    "VipTradePost": {
+      "title": "VipTradePost",
+      "description": "VIP trading signal post (text and optional image only, no video).",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "pair": { "type": "string" },
+        "direction": { "type": "string", "enum": ["LONG", "SHORT", "NEUTRAL"] },
+        "entryPrice": { "type": "string" },
+        "stopLoss": { "type": "string" },
+        "takeProfit": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "authorId": { "type": "string" },
+        "reactionFire": { "type": "integer" },
+        "reactionRocket": { "type": "integer" },
+        "reactionHundred": { "type": "integer" },
+        "reactionBull": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "body", "pair", "direction", "entryPrice", "stopLoss", "takeProfit", "authorId", "reactionFire", "reactionRocket", "reactionHundred", "reactionBull", "createdAt", "updatedAt"]
+    },
+    "MarketAnalysisPost": {
+      "title": "MarketAnalysisPost",
+      "description": "Technical market chart analysis post with support and resistance levels (text and image only).",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "pair": { "type": "string" },
+        "timeframe": { "type": "string" },
+        "summary": { "type": "string" },
+        "supportLevels": { "type": "array" },
+        "resistanceLevels": { "type": "array" },
+        "imageUrl": { "type": "string" },
+        "authorId": { "type": "string" },
+        "reactionFire": { "type": "integer" },
+        "reactionRocket": { "type": "integer" },
+        "reactionHundred": { "type": "integer" },
+        "reactionBull": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "pair", "timeframe", "summary", "supportLevels", "resistanceLevels", "authorId", "reactionFire", "reactionRocket", "reactionHundred", "reactionBull", "createdAt", "updatedAt"]
+    },
+    "CommunityMessage": {
+      "title": "CommunityMessage",
+      "description": "Community feed/chat post created by non-suspended members.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorInitials": { "type": "string" },
+        "body": { "type": "string" },
+        "tickerTag": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "authorName", "authorInitials", "body", "tickerTag", "createdAt", "updatedAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Push notification and announcement broadcast record.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "category": { "type": "string", "enum": ["vip_trades", "market_analysis", "announcements"] },
+        "targetId": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "authorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "message", "category", "authorId", "createdAt"]
+    },
+    "IssueReport": {
+      "title": "IssueReport",
+      "description": "User-submitted issue report managed and resolved by admin.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "subject": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "resolved"] },
+        "adminNote": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userEmail", "userName", "subject", "description", "status", "adminNote", "createdAt", "updatedAt"]
+    },
+    "AppContentDoc": {
+      "title": "AppContentDoc",
+      "description": "Admin-editable Help/FAQs, Terms and Conditions, and Privacy Policy content.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "body", "updatedBy", "updatedAt"]
+    },
+    "UserPostReaction": {
+      "title": "UserPostReaction",
+      "description": "Per-user emoji reaction state for a post.",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "emojis": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["postId", "emojis", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profiles, preferences, FCM tokens, and suspension flags."
+    },
+    "/users/{userId}/reactions/{postId}": {
+      "schema": { "$ref": "#/entities/UserPostReaction" },
+      "description": "Per-user emoji selections per trade or analysis post."
+    },
+    "/admins/{adminId}": {
+      "schema": { "type": "object" },
+      "description": "Trusted admin role registry for backend RBAC."
+    },
+    "/admin_meta/{docId}": {
+      "schema": { "$ref": "#/entities/AdminCredentialConfig" },
+      "description": "One-time admin setup configuration document."
+    },
+    "/vip_trades/{tradeId}": {
+      "schema": { "$ref": "#/entities/VipTradePost" },
+      "description": "VIP trade signal posts."
+    },
+    "/market_analyses/{analysisId}": {
+      "schema": { "$ref": "#/entities/MarketAnalysisPost" },
+      "description": "Market chart analysis posts."
+    },
+    "/community_messages/{messageId}": {
+      "schema": { "$ref": "#/entities/CommunityMessage" },
+      "description": "Community feed/chat posts."
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/Announcement" },
+      "description": "Notification center feed and server FCM trigger records."
+    },
+    "/issue_reports/{reportId}": {
+      "schema": { "$ref": "#/entities/IssueReport" },
+      "description": "User issue reports."
+    },
+    "/app_content/{docId}": {
+      "schema": { "$ref": "#/entities/AppContentDoc" },
+      "description": "Editable Help/FAQs, Terms, and Privacy Policy."
+    }
+  }
+}

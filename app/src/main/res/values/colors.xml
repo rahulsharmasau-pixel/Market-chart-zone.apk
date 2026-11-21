@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="navy_deep">#FF070B19</color>
+    <color name="navy_surface">#FF121936</color>
+    <color name="teal_accent">#FF00E5B0</color>
+    <color name="violet_accent">#FF8B7BFF</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
